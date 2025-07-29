@@ -222,22 +222,21 @@ describe("wzn-burn-play", () => {
   });
 
   it("Allows player to use quota play", async () => {
-    // First, we need to create the player quota account
-    // This would typically be done when claiming rewards
-    // For this test, we'll simulate it
-
     await program.methods
       .useQuotaPlay()
       .accounts({
         gameState: gameStatePda,
         playerQuota: playerQuotaPda,
         player: player.publicKey,
+        systemProgram: SystemProgram.programId,
+        rent: SYSVAR_RENT_PUBKEY,
       })
       .signers([player])
       .rpc();
 
-    // Note: This will fail if playerQuota account doesn't exist
-    // In a real scenario, this would be created during reward claiming
+    const playerQuota = await program.account.playerQuota.fetch(playerQuotaPda);
+    assert.equal(playerQuota.player.toString(), player.publicKey.toString());
+    assert.equal(playerQuota.playsUsedThisWeek, 1);
   });
 
   it("Allows DAO to update governance", async () => {

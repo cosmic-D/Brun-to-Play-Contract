@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::TokenAccount;
 
+use crate::errors::GameError;
+
 // Constants
 pub const WEEKLY_SECONDS: i64 = 7 * 24 * 60 * 60; // 7 days in seconds
 pub const ANNUAL_REWARD_RATE: u64 = 4; // 4% APY
