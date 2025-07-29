@@ -1,0 +1,25 @@
+[package]
+name = "wzn-burn-play"
+version = "0.1.0"
+description = "WZN Burn-to-Play Game on Solana"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "wzn_burn_play"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.29.0"
+anchor-spl = "0.29.0"
+solana-program = "~1.17.0"
+
+[dev-dependencies]
+solana-program-test = "1.17.0"
+solana-sdk = "1.17.0" 

@@ -1,0 +1,1396 @@
+I have 3 people who can work on your project.
+
+but I think you only need 1 or am I wrong?
+KRISTOF VAN ROOY 12:42 PM
+
+yes only one if we get success this can change
+Stanislav Uzunchev 12:43 PM
+
+fine
+KRISTOF VAN ROOY 12:43 PM
+
+but right now until tax day in may i want to keep costs down and see what we can do how the idea plays out
+
+what smartcontracts have you or your team worked on before?
+
+have they used pda's?
+Stanislav Uzunchev 12:46 PM
+
+we’ve built on EVM + Solana.
+Used PDAs for staking + account auth.
+
+token, nft, voting, staking contracts is not problem
+KRISTOF VAN ROOY 12:48 PM
+
+thats really cool we want to experiment with new ways to use crypto see if people are open for this model. we will make a game and people will buy tokens then a smartcontract puts some of this money on a pda and then gives 4% APY on this but drops it in another pda that players cannot touch only they can cash out but not fill it. Only we can with those yearly 4% but we pay this every week
+Stanislav Uzunchev 12:49 PM
+
+lol interesting concept
+
+I want us to work together, what do you think about this?
+KRISTOF VAN ROOY 12:50 PM
+
+yeah i want to introduce a game and it would break gambling rules if we let players play directly pvp
+
+so we need to make sure players cannot top up funds
+
+or lose their own crypto
+KRISTOF VAN ROOY 12:50 PM
+
+i think this is a nice solution 😉
+Favorited
+
+players still need to buy tokens if they want to play but they cannot use them they can only cash them out (the ones we give)
+
+or the profits from playing other players
+Stanislav Uzunchev 12:52 PM
+
+I think I understand
+
+We often work with similar concepts, but never with this one, it's an interesting approach.
+KRISTOF VAN ROOY 12:53 PM
+
+what things do you need of me nd the team working with me to make this nicely? besides the contract.
+
+one more worry if efficient coding
+
+chatgpt made two options for me one or two contracts i want total cost to preferably stay under 3 or 4solmax
+
+for launching
+
+but you can develop in test net mode first
+Stanislav Uzunchev 12:54 PM
+
+Let me wait for the colleague I'm entrusting this project to come online and I'll write to you.
+
+maybe 10-15 mins
+KRISTOF VAN ROOY 12:54 PM
+
+ok thats good
+Stanislav Uzunchev 12:54 PM
+
+thx
+KRISTOF VAN ROOY 12:55 PM
+
+if he has questions of how it will work let me know and i'll answer them
+Stanislav Uzunchev 12:56 PM
+
+okay
+
+thats okay
+KRISTOF VAN ROOY Jul 24, 2025 | 12:54 PM
+
+chatgpt made two options for me one or two contracts i want total cost to preferably stay under 3 or 4solmax
+Stanislav Uzunchev 1:10 PM
+
+For the 4% APY - is it calculated from the staked amount or from the total balance in the vault? And is it paid weekly as a fixed amount or is it compounded?
+
+
+Do you prefer one smart contract to handle everything (stake + quota + APY), or should we split it into two contracts?
+
+
+Are there any administrative controls you will need (pause, reset quota, withdraw funds from the vault), or should it be fully decentralized?
+
+
+Is the WZN token already implemented or will we need to create and mint it as part of this sprint?
+
+
+Which parts should be delivered in the initial 30-hour sprint - just the smart contract logic or also frontend integration/testing?
+
+
+Do we need access restrictions (whitelist/blacklist) on who can bet?
+KRISTOF VAN ROOY 1:13 PM
+
+Its payed weekly as as a small part of it 4/52 only on the playerd pda this can be used to play game cash out once a week
+KRISTOF VAN ROOY 1:13 PM
+
+For the sprint everything bjt we use testnet and testtokens
+Favorited
+
+The wzn token is already created
+
+100 m tokens
+Stanislav Uzunchev 1:21 PM
+
+We will start by writing the smart contract on testnet and confirm everything for future mainnet deployment.
+If you want, I can send you a brief architecture with the logic and structure beforehand or I can start directly.
+
+Are you online the next few hours?
+
+Do you prefer one smart contract or should we split it into two?
+KRISTOF VAN ROOY 1:23 PM
+
+yes i should be i had some call just and have to go check on a house of my family but further i am home mostly
+Stanislav Uzunchev 1:24 PM
+
+I understand, we will allow ourselves to write when there are questions, do you have a deadline for us to follow?
+KRISTOF VAN ROOY Jul 24, 2025 | 1:23 PM
+
+yes i should be i had some call just and have to go check on a house of my family but further i am home mostly
+Stanislav Uzunchev 2:51 PM
+
+Do you need pause, quota reset, withdraw from vault?
+
+Or full decentralised?
+KRISTOF VAN ROOY 5:20 PM
+
+let me ask chatgpt
+
+actually he is the boss at this point 😉
+Stanislav Uzunchev 5:22 PM
+
+i understand 🙂
+KRISTOF VAN ROOY 5:26 PM
+
+it replied for me
+
+You should ask for limited admin controls, because:
+
+
+🔒 Full decentralization would mean:
+• No way to stop abuse (bot farm / exploit)
+• No recovery from bugs or unexpected logic failures
+• No emergency shutdown if laws change or partners request changes
+
+
+✅ Instead, go for: Controlled but safe model
+
+
+You should ask your developer to add:
+1. Pause Feature
+• ✅ Yes. Add pauseGame() or pauseStaking() functions that only you (or your multisig) can call.
+• Used in case of emergency, bugs, or fraud detection.
+2. Quota Reset
+• ✅ Optional. Only needed if you want to update the amount people can get weekly — or reset when there’s a bug.
+• You can skip it for now unless you want to manually tweak 4% → 2% later without redeploying.
+3. Withdraw Vault
+• ✅ Yes, but limited to unused funds.
+• Allow the team wallet to withdraw unallocated WZN or mistakenly transferred funds from the vault PDA, but never from player-owned balances or game PDAs.
+4. Upgradeability
+• ⚠️ Consider whether the contract is upgradeable via Anchor (using upgradeable program architecture) or if you want it immutable.
+• Best for testnet and Phase 1 to be upgradeable — and lock it later when you’re sure it’s secure and legal.
+
+
+⸻
+
+
+Suggested Answer You Can Send to Stanislav
+
+
+We want a middle-ground approach:
+• Yes to admin pause, just in case of bugs or emergency
+• Yes to vault withdraw but only for funds accidentally left unused — never from game PDAs or player balances
+• Quota reset optional — not needed for MVP
+• Please keep contract upgradeable during testing; we’ll lock it before final mainnet deploy
+
+
+Also:
+
+
+We don’t need full decentralization immediately. If we grow, we may move to multisig governance or DAO later. For now, a secure owner-controlled structure is fine.
+
+
+⸻
+
+
+Would you like me to also re-outline the contract structure (like: staking contract + gameplay vault contract with PDAs) so the new dev gets a clear updated diagram or code layout?
+
+you cna let the other guy know ps i assume it is to late to start today i am open for it but if you can start full force tomorrow i am fine and if you are fine with 4 usd an hour for a long time and token rewards on top after tax day next year i can up the wage a lot if we have success but then maybe those tokens may have compensated for it to 😉
+
+the other developer worked hard today
+
+he did 9 hours
+
+he made a small error but with this way of workign we see errors fast
+image (1).png
+image (1).png
+Stanislav Uzunchev 5:44 PM
+
+yes, it was logical to be honest, but I had to ask
+
+Is payment for the service made here or through the blockchain?
+
+I'm talking about the service that my team and I will now provide, I understand the rest 🙃
+
+I understand, I'm very sorry that there was a delay today, we will definitely work tomorrow, I have the right people for you and I think we will be satisfied.
+KRISTOF VAN ROOY Jul 24, 2025 | 5:29 PM
+
+you cna let the other guy know ps i assume it is to late to start today i am open for it but if you can start full force tomorrow i am fine and if you are fine with 4 usd an hour for a long time and token rewards on top after tax day next year i can up the wage a lot if we have success but then maybe those tokens may have compensated for it to 😉
+KRISTOF VAN ROOY 5:59 PM
+
+here i dont want to break upwork tos
+
+no worries its from my end to
+
+here you get guaranteed pay ofg 4 usd an hour and in may next year if all is. good i might improve it
+Stanislav Uzunchev 6:02 PM
+
+Okay, that suits me.
+KRISTOF VAN ROOY 6:05 PM
+
+great i'll send the contract later today then full time for a few days and then i decrease hours once we have a working game we then do part time and use that to face all challanges and expand on the project
+Favorited
+Friday, Jul 25
+KRISTOF VAN ROOY 4:39 AM
+
+i had a discussion with an american person i know and we have to change tokenomics appearantly some rulings have changed and its not 100% clear if our model is still safe in the usa in some states
+
+thats why the delay
+
+i worked out a new model (well chatgpt helped me mostly 😉 )
+Stanislav Uzunchev 4:40 AM
+
+That's great that we've figured it out, we're already ahead.
+KRISTOF VAN ROOY Jul 25, 2025 | 4:39 AM
+
+i had a discussion with an american person i know and we have to change tokenomics appearantly some rulings have changed and its not 100% clear if our model is still safe in the usa in some states
+KRISTOF VAN ROOY 4:42 AM
+
+Your Setup Recap (Final Model)
+Here's the summary of your current system:
+
+
+🔹 Token & Vault System
+Players burn WZN to play — deflationary
+
+
+You give out tournament prizes monthly (e.g. 200k WZN/month)
+
+
+You gradually sell new tokens into LP, always less than what is burned or sold
+
+
+A “Recovery Vault” gets 10–20% of burned tokens yearly
+→ Controlled by DAO vote only
+→ You do not automatically get anything
+
+
+🔹 Ownership & Legal Structure
+You own the dev wallets for now (this is fine)
+
+
+Vaults use PDAs or smart contracts you can’t withdraw from without DAO vote
+
+
+DAO vote defaults to 0 reward — no promise, no obligation
+
+
+You’ll only claim rewards when the community agrees or once a company is formed
+
+
+🔹 Benefits
+Area Result
+🛡️ Tax Safety Nothing owed until tokens are voted and sent to you
+📈 Price Strategy Burn pressure > reward output = price can rise
+🧩 Flexibility You can build a team later, and reward them legally
+💬 Community Trust DAO control shows fairness, avoids “rug” fear
+
+
+✅ Optional Add-Ons Later
+Feature Why Add It
+🗳️ Public DAO dashboard Adds legitimacy & transparency
+📅 Annual audit of recovery vaults Shows you’re not abusing inflation
+🔁 Multi-sig transition for control When you're ready to share power or leave
+
+its even more complex to not make it a taxable event the recovery vault has voting first people can vote if they want to make some new inflation or not then i dont know if we get our tokens next year if they vote no but we need ta back up system that if i press it we only need a few votes of people i know can be anyone just i need a few ones then to unlock the tokens if robots or traders want to stop us from playing that i can reintroduce some tokens in the system
+
+because we have 100 000 000 tokens if we get to 1000 players and everyone burns 1000 tokens a month to play it would mean all tokens would be gone within about 8 years
+
+if we recycle them when the majority wants to reinflate the coins a bit to secure future playing then we can vote for how many tokens are released to us again
+
+since i dont know how many tokens it cannot be taxable 😉
+
+if we burn them for good our token would be dead in 8 years i assume most projects die in that time but knowing early would be a bad look for a game
+
+actually we can recycle our economy unlike other game tokens then
+
+✅ Goal: Add a Backup Team Vote System
+So the system:
+
+
+✅ Keeps you from having full unilateral control (for trust/legal reasons)
+
+
+✅ Allows community DAO voting for inflation or team payments
+
+
+✅ ⛔ Prevents rug pulls or abuse (via default 0 inflation)
+
+
+✅ 🆘 Allows a failsafe path if bots or inactive voters hijack the DAO
+
+Conditions to Activate Backup Vote
+To stay legally safe and protect player trust:
+
+
+You must code in rules like:
+
+
+Condition Why It Matters
+❌ DAO fails to pass a vote for 6–12 months Shows inactivity
+📉 Prize vault drops below X WZN Urgency condition (e.g. 1M tokens) (lets make that 10 M)
+⚖️ Backup multisig must vote unanimously Prevent abuse
+🪙 Max unlock per year = capped % (e.g. 5% of burned WZN) Limits risk/inflation (if we go below 10 M tokens we get 25%)
+
+is this possible
+
+then we would probably likely bypass american regulation for gambling and crypto regulation in europe in 2026
+Stanislav Uzunchev 4:56 AM
+
+Got it, the model makes full sense and yes, everything you described is possible.
+I’ll structure the contract so the DAO has full control by default, and the Backup Team Vote only activates under strict conditions (like inactivity, low vault balance, unanimous multisig, etc
+It’ll be secure, transparent, and legally safe. I’ll start building it on testnet with mock tokens.
+Let me know if you want a quick outline before I dive in.
+KRISTOF VAN ROOY 5:00 AM
+
+great before coding tell me short what you will do again in simple language i might have things i want to change if i hear them from you again or there might be thigns missing
+
+KRISTOF VAN ROOY sent an offer
+5:00 AM
+
+📍 Remote | $4/hr | Bonus in WZN tokens | 5-Day Sprint + Ongoing Part-Time
+
+
+We’re launching a crypto-based multiplayer card game with token staking on Solana. We’re hiring a smart contract developer to finalize our game contract and build a custom staking + quota system using Anchor.
+
+
+⸻
+
+
+✅ Responsibilities
+• Finalize our existing game smart contract (stake-to-play logic + zero-sum rewards)
+• Build a staking pool contract:
+• Users stake WZN to earn 4% weekly APY
+• A quota is unlocked weekly — users can only use this quota to play
+• No manual deposit into game balance allowed
+• Manage vaults, signer seeds, and secure payout transfers
+• Optimize for user-pays gas model
+• Work with frontend team (React) to ensure smooth wallet/contract connection
+
+
+⸻
+
+
+🧰 Requirements
+• Experience with Solana smart contracts using Rust + Anchor
+• Understands SPL Token program, PDAs, CPIs, and signer auth
+• Able to deploy to devnet and write basic unit tests
+• Past work with token games or staking logic is a plus
+
+
+⸻
+
+
+💼 Contract Details
+• 💰 $4/hr (Upwork hourly)
+• ⏱️ 30 hours over 5 days (initial sprint week)
+• 🔁 After delivery, option for part-time continuation (same rate)
+• 💎 WZN token bonus possible upon completion
+• 🚀 Future work includes game expansion, reward mechanics, and tournaments
+
+
+⸻
+
+
+🪙 WZN Bonus
+
+
+If work quality is strong and timely:
+• You may earn a WZN token bonus
+• Plus priority status for long-term work as our game scales
+
+
+⸻
+
+
+📩 To Apply
+
+
+Start your message with WZN-DEV and include:
+• 1–2 links to previous Solana smart contract work (preferably Anchor)
+• Your current availability (starting this week)
+• Any experience with gaming, staking, or token reward systems
+
+Rate: $4.00/hr
+
+Rate increase: None
+
+Limit: 40 hrs/week
+View offer
+
+so you can start today if needed if your other worker has not got upwork installed i can temporarly enable manual tracking if he or you update me every few hours
+
+i can change hours as needed
+
+for now we work with a test contract if you agree i will make a room for the front and game coder (one guy)
+Stanislav Uzunchev 5:36 AM
+
+The other dev is currently sleeping — I’m just waiting for him to wake up. I’ve been working all night so I’m going to get a bit of sleep too, then we’ll start.
+
+
+You can add only him to the GitHub repo for now — we’ll coordinate everything together from our side and keep you updated.
+
+Sorry for the slow replies but it was a long night
+KRISTOF VAN ROOY 5:40 AM
+
+no worries dont wake him up
+
+he can join later read it and tell me what he thinks he has to do maybe we need to change somethings let him tell in very basic terms
+
+he can account 30 minutes for that already
+
+and giving suggestions
+
+i am currently doing simulations if players are willing to burn 1000 tokens a month they buy knowing price will go up from the tokens they buy and they can play a game it might do some nice things
+Stanislav Uzunchev 5:43 AM
+
+Nice
+KRISTOF VAN ROOY Jul 25, 2025 | 5:42 AM
+
+i am currently doing simulations if players are willing to burn 1000 tokens a month they buy knowing price will go up from the tokens they buy and they can play a game it might do some nice things
+
+phoenix0015
+thats a github account
+
+I'm going on vacation for a few hours, we'll keep in touch, this guy is working well.
+KRISTOF VAN ROOY 5:47 AM
+
+ok talk to you in a few hours
+
+or days?
+
+that would be problematic 😃
+
+i still have to sleep to i have a break from work 😉 so i can afford to stay up at night and sleep a few hours during day
+Stanislav Uzunchev 5:52 AM
+
+I'm the same, I literally haven't slept for 40 hours because we had a really busy day and I just didn't feel like sleeping... I'll probably sleep for 7-8 hours, then I'll contact my developer and we'll get started.
+
+once a week sometimes I do long sessions
+
+You've been online for quite a while too, I liked that.
+
+Stanislav Uzunchev accepted an offer
+5:54 AM
+View contract
+KRISTOF VAN ROOY 5:57 AM
+
+thats good
+
+i dont mind it takes 10 hours i'll sleep some to and have to think of details have a good night
+
+the basics will stay so you can already send this to the developer
+Stanislav Uzunchev 5:58 AM
+
+okay
+KRISTOF VAN ROOY Jul 25, 2025 | 5:58 AM
+
+the basics will stay so you can already send this to the developer
+
+thx, bye for now.
+KRISTOF VAN ROOY Jul 25, 2025 | 5:57 AM
+
+i dont mind it takes 10 hours i'll sleep some to and have to think of details have a good night
+Stanislav Uzunchev 1:34 PM
+
+Okay, I got some sleep and I'm more refreshed. My developer hasn't been online for a while, which is rare, maybe there's a reason. I'm starting work myself and he'll take over when he gets here.
+
+my github:
+N3znam
+Stanislav Uzunchev 2:02 PM
+
+Okay, the boy is here.
+
+I have already created some of the smart contracts and am continuing
+
+The boy said he had to go to the hospital because of his mother, I assumed something bad had happened, he always responds quickly.
+KRISTOF VAN ROOY 2:55 PM
+
+Ok no woŕries if needed we can start tomorrow let me know how it goes when he is back
+Stanislav Uzunchev 3:44 PM
+
+oke
+Stanislav Uzunchev 5:42 PM
+
+He said he was tired, he would just rest for a few hours and he would take over.
+KRISTOF VAN ROOY 7:17 PM
+
+thats good
+KRISTOF VAN ROOY 7:18 PM
+
+i'll be around now this evening it might take a bit to reply though
+Favorited
+Stanislav Uzunchev 10:47 PM
+
+Okay, I think my colleague would be better off resting today, let's continue tomorrow as he suggested earlier.
+Stanislav Uzunchev 10:54 PM
+
+Quick update... we have completed the basic smart contract logic: recording for playback, staking, and setting up the vault. This is a solid foundation but it is not complete and finalized. We will then improve and extend it with DAO and recovery logic.
+KRISTOF VAN ROOY 11:31 PM
+
+hi
+
+how can i call you in short? I changed the whole smartcontract idea unfortunatly well fortunatly for me as it was not ideal for future laws
+
+if you are around we can talk about it also we can talk about the game a bit so you know what you work for
+
+sorry for the delay i dont know how to turn on notifications on my pc
+Stanislav Uzunchev 11:36 PM
+
+What changed in the logic?
+
+How is Stan?
+KRISTOF VAN ROOY Jul 25, 2025 | 11:31 PM
+
+how can i call you in short? I changed the whole smartcontract idea unfortunatly well fortunatly for me as it was not ideal for future laws
+KRISTOF VAN ROOY 11:38 PM
+
+from the ground up we go from stake to play to burn to play where you buy a monthly contract by burning it to a wallet (not real burn or more not a wallet a contract) and after some years people can vote to release some money from it.
+
+thats good i'll call you stan in the evening 😉
+
+i had discussion with someone from america and he told it wouldnt pass it is very grey zone as pvp might still be seen as wagering unless we do a lot of steps in between and also staking itself will be a financial product next year in eu
+
+i dont want to register for gambling and register for a financial product
+
+this will cost a ton of money 😉
+Stanislav Uzunchev 11:40 PM
+
+My spoken English is not good enough, I am working on it. I hope you will be comfortable writing.
+
+My colleague speaks well otherwise, it will be perfect with him.
+
+interesting
+KRISTOF VAN ROOY Jul 25, 2025 | 11:38 PM
+
+from the ground up we go from stake to play to burn to play where you buy a monthly contract by burning it to a wallet (not real burn or more not a wallet a contract) and after some years people can vote to release some money from it.
+KRISTOF VAN ROOY 11:43 PM
+
+no worries i cant speak well i have a voice issue anyway in my language its fine but if i try to talk english it goes to hell
+Stanislav Uzunchev 11:43 PM
+
+I think it's really good to sneak out and not be a gamble for the law.
+KRISTOF VAN ROOY 11:44 PM
+
+in my language i got to keep 70 kids under control alone
+
+😃
+
+but if i try to speak english some people are like what do you say
+
+yeah its very important also the staking we should drop all of it
+
+i talked with chatgpt all of yesterday it propposed a new system very interesting
+
+where players pay to play (instead of getting payed to play like most crypto games)
+
+i know its sounds counter intuitive because thats the first question crypto gamers ask
+
+how rich can i become playing this game
+
+but if they go with the story they buy more then they burn every month
+Stanislav Uzunchev 11:46 PM
+
+I'll come out of the bathroom in a moment and answer. 😃
+KRISTOF VAN ROOY 11:48 PM
+
+if we get to 1000 players and the coin is low in value each player will burn 1000 coins a month so 1 M a month and we have a total supply of 100 M coins now we can introduce them to the market initially buy the tokens to players at raising prices if we tactically sell new tokens as players drain the lp really fast (that has 1 M tokens) if we give 200 000 tokens from our own token supply as prices for top players and random players doing matches and maybe a task and add another 200 000 tokens for people to buy each month there will be a huge defficit
+
+so smart players buy tokens to hold and tokens to increase value by playing
+
+we make that the game is fun and has a nice chart and only paying players can do ranked mode or play more then two games a month so they buy those passes to play and once every year or so we do a competition with much bigger prices for those ranked players
+
+if we attract 100 players this way we even pay them in advance i'll pay initially their solana fees to if we can keep them really low
+
+so they only buy for the 1000 wzn monthly and ofcourse extra coins they will set aside
+
+then the coin will start moving up in price and if then traders join see this is not an inflationary coin like almost all gaming coins
+
+this effect will be enlarged and then we can start raisiing marketcap by how fast we add supply to the market from our spare through giving out free prices and selling tokens
+
+we dont want the price to rise to super high levels to fast we want the market cap to follow with price
+
+we will within two years have sold almost all our tokens to players if we started with 1000 players and traders where to join the typical good coin trading dex coin so then people vote how much inflation they want to reintroduce each year
+
+this coins go back to our wallets to pay prices and sell again for us or a future team
+
+we will make it honnest and make most price money we cant touch
+
+there needs to be an emergency button to where we only need 10 votes if it gets hijacked by people who want to see the project die
+
+this needs to be protected to we cannot press this button at any time
+
+it needs to check the supply that is left or see how much is in the contract that has all the burned coins and it can only be switched if it has say 80% of all tokens
+
+that contract
+
+then we can reintroduce ourselves with 10 votes 5 - 10 - 15%
+
+the game we will play is a form of whist played locally
+
+its a 4 person cards game
+
+my first idea was pvp and winner gets coins from loser from stake we give but unfortunatly this model wont work in the usa
+Saturday, Jul 26
+KRISTOF VAN ROOY 12:02 AM
+
+if we fail with this model we can change the model later and i'll buy new smartcontracts but if players go with it in the story they realise them playing actively increases the token price and they buy more then they play with since they are the first to raise the price they would be getting likely best prices. Well this will be very true for players joining the first 4 months there is 1000 players or less
+
+if players dont go with us in the story we adjust it later again
+Stanislav Uzunchev 12:14 AM
+
+This is a seriously more sustainable model than most crypto games on the market. If done smart and the UX is smooth, there is potential for great organic growth
+KRISTOF VAN ROOY 12:15 AM
+
+yeah i hope to
+
+if we can get players with us in this story and they start bragging how much money they made 😉
+
+i can see this grow
+
+and we can recycle coins at some point
+
+so you can tell me how you would make this before you start developping so i am sure you got all pointers required
+
+i'll show it to my chatgpt to
+
+if he is happy then you can start coding 🙂
+Stanislav Uzunchev 12:17 AM
+
+I think I can help you with marketing too.
+KRISTOF VAN ROOY 12:17 AM
+
+he can then give direct adjustments to the front end developer to
+Stanislav Uzunchev 12:17 AM
+
+okay
+KRISTOF VAN ROOY Jul 26, 2025 | 12:17 AM
+
+if he is happy then you can start coding 🙂
+KRISTOF VAN ROOY 12:18 AM
+
+thats good the first few months i only want a few people
+
+if we make some errors
+KRISTOF VAN ROOY 12:18 AM
+
+but then marketing will be so helpfull
+Favorited
+Stanislav Uzunchev 12:18 AM
+
+thats good
+KRISTOF VAN ROOY Jul 26, 2025 | 12:18 AM
+
+thats good the first few months i only want a few people
+KRISTOF VAN ROOY 12:20 AM
+
+if the game works well then we can start promoting 🙂
+
+if you have ties you can use hours for that to but dont use bots or tools
+
+lets make it as organic as possible
+KRISTOF VAN ROOY 12:20 AM
+
+so we grow linearly
+Favorited
+Stanislav Uzunchev 12:35 AM
+
+Modules and Functionality:
+
+
+Burn Contract (PDA):
+Handles WZN token "burns" when players buy monthly game passes. Tokens are locked (not destroyed) in a program address.
+
+
+GameQuota System:
+Tracks how many ranked games each user can play per month. One burn = fixed number of games. Resets monthly.
+
+
+Vault Contract (PDA):
+Stores all burned tokens. Inaccessible under normal conditions. Can be unlocked by DAO after several years with proper conditions.
+
+
+DAO Voting Logic:
+Allows players to vote on proposals (unlock vault, enable inflation, etc.). Requires quorum, time delays, and clear rules.
+
+
+Recovery Contract:
+Backup mechanism in case DAO is hijacked or inactive. Can trigger emergency unlocks if 80% of supply is in the vault and at least 10 trusted votes are cast.
+
+
+Frontend/API Layer:
+UI and API layer for players. Shows quota status, burn confirmation, wallet connection, ranked stats, and more.
+
+
+Optional Modules:
+Features like ranked tournaments, bonus tasks, controlled inflation, or community giveaways.
+
+
+Key Principles:
+
+
+No staking:
+Players pay to play. No yield = no regulatory gray zone around financial products.
+
+
+Locked vault:
+Burned tokens are not spendable. Only accessible after proper on-chain vote under long-term conditions.
+
+
+Modular & upgradable:
+System is broken into independent parts. Each module can be improved or replaced without affecting the others.
+
+
+Community-controlled:
+Players collectively govern the system. DAO votes determine major economic changes and emergency actions.
+KRISTOF VAN ROOY 12:37 AM
+
+i'll check it through my chatgpt to be sure its correct
+Stanislav Uzunchev 12:38 AM
+
+Of course, hopefully he will add something too
+KRISTOF VAN ROOY 12:39 AM
+
+✅ WHAT'S GOOD / ALREADY CORRECT
+✅ 1. Burn Contract (PDA)
+✔ Correct that tokens are not truly destroyed — they're locked in a program address (PDA) to stay transparent and traceable.
+
+
+✔ Avoids real "burn" confusion and allows optional vault recovery/voting in the future.
+
+
+✅ 2. GameQuota System
+✔ One-time burn grants monthly game quota (not per match), consistent with your plan.
+
+
+✔ Auto-reset monthly = clean solution.
+
+
+✔ Can be paired with start_game() checks to limit ranked access.
+
+
+✅ 3. Vault Contract (PDA)
+✔ Stores all "burned" WZN.
+
+
+✔ Inaccessible except through rare DAO vote after years = ✅ aligns with legal model.
+
+
+🔒 Ensures no dev or team can secretly spend rewards = builds trust.
+
+
+✅ 4. DAO Voting Logic
+✔ Quorum, delays, and vote rules — perfect for handling future reward unlocks or changes in prize structure.
+
+
+✔ Optional inflation = user-driven.
+
+
+✅ 5. Recovery Contract
+✔ Emergency fallback with 10 trusted votes + 80% locked = great failsafe.
+
+
+✔ Covers you if dev disappears or DAO is hijacked.
+
+
+✅ 6. Frontend/API
+✔ Includes everything needed: quota display, burn button, reward preview, wallet UI, etc.
+
+
+⚠️ WHAT NEEDS TO CHANGE OR BE CLARIFIED
+⚠️ 1. Burn = Play Access, not per Game
+Stanislav says: "One burn = fixed number of games"
+
+
+✅ Your model is: "One burn = monthly access to ranked play"
+
+
+🔄 Change wording & implementation:
+
+
+No fixed number of games. Just a time-locked access token (e.g. 30 days).
+
+
+Could be a simple timestamp check:
+is_access_valid(user) = now < burn_timestamp + 30 days
+
+
+⚠️ 2. Vault Usage — Monthly Prizes Not Covered
+Currently:
+
+
+Vault = untouchable until years later
+
+
+DAO = only votes after long time
+
+
+⚠ But in your model:
+
+
+The DAO gives out monthly WZN rewards to top-ranked players
+
+
+Prizes are not from recent burns, but from a separate pre-funded vault
+
+
+So:
+
+
+✅ Solution:
+You need two vaults:
+
+
+Vault Name Purpose Access Rules
+🔒 BurnVault Holds burned WZN (unspendable) Unlockable after years only via vote
+🎁 PrizeVault Holds WZN for monthly rewards DAO votes monthly on payout pool
+🔐 Optional Recovery unlock possible if dev dies Same trusted multisig fallback
+
+
+👉 This way:
+
+
+BurnVault = legal compliance (locked, no yield)
+
+
+PrizeVault = regular competitive rewards, handled safely via DAO
+
+
+⚠️ 3. Monthly Reward Logic is Missing
+You need a smart contract or off-chain oracle to:
+
+
+Gather player rankings
+
+
+Identify top X% (or top N)
+
+
+Send reward amounts to winners from PrizeVault
+
+
+Could be:
+
+
+On-chain: heavy and costly
+
+
+Or off-chain (cheaper): backend submits distribute_rewards() tx each month, DAO votes to approve it
+
+
+⚠️ 4. Optional Modules May Be Important
+Some of these "optional modules" may need to be made core:
+
+
+Ranked Tournament Logic: needed early for monthly prize calculation
+
+
+Controlled Inflation: you might want to allow future emissions (e.g. daily login rewards, starter packs) with DAO approval
+
+
+✅ FINAL SUGGESTED STRUCTURE (Smart Contract Modules)
+Module Description
+BurnPass.sol or burn_pass.rs User burns WZN → gains 30-day access
+GameAccessControl Validates user access during start_game()
+ScoreTracker Records wins/losses, generates rankings
+PrizeVault Holds reward WZN; DAO can approve monthly payouts
+BurnVault Holds burned WZN permanently
+DAO_VoteSystem Handles all vote types (prizes, inflation, unlocks)
+EmergencyRecovery Allows trusted 10+ wallet override
+FrontendAPI Connects all above for players
+
+one more thing we can do it with only 3 sol costs if optimize so you can try hitting that
+
+a bit less even but i'll give a bit room
+KRISTOF VAN ROOY 12:41 AM
+
+but do a test contract first with test tokens
+Favorited
+KRISTOF VAN ROOY 12:41 AM
+
+i dont have tons of solana laying around haha
+Favorited
+
+here is a bit more
+
+✅ OVERVIEW: What the Dev Needs to Know (Before Coding)
+🔐 Key Concepts
+WZN is burned for access, not staked or deposited.
+
+
+Tokens are not destroyed, but locked in a burn vault PDA.
+
+
+No per-match payments. Access is monthly and unlimited.
+
+
+Rewards come from a separate DAO-governed vault, not the burn vault.
+
+
+Legal safety relies on:
+
+
+No yield
+
+
+No user-to-user payouts
+
+
+No top-ups
+
+
+The project uses user-paid Solana fees only.
+
+
+Emergency recovery is allowed if >80% of supply is burned and 10+ wallets approve.
+
+
+✅ MASTER TASK LIST
+MODULE 1: BurnPass Contract (3–6 hours)
+Handles burning WZN to grant 30-day ranked access.
+
+
+Write burn_for_pass() function
+
+
+Use associated_token_account to check + burn user WZN
+
+
+Store burn_timestamp in PDA or UserMetadata
+
+
+Ensure users cannot buy more than once per period
+
+
+Emit access confirmation event
+
+
+MODULE 2: GameAccessControl (2–3 hours)
+Verifies user access when starting games.
+
+
+Write check_access(user) function
+
+
+Compare burn_timestamp + 30d > current_time
+
+
+Return access flag to frontend or backend
+
+
+MODULE 3: ScoreTracker (6–10 hours)
+Records match outcomes for ranked leaderboard.
+
+
+report_match_result(game_id, winner_wallets[], slagen_data)
+
+
+Store per-user stats (wins, slagen, modes played)
+
+
+Provide read access to leaderboard backend
+
+
+🧠 Optional: Off-chain oracles or scripts can summarize rankings monthly.
+
+
+MODULE 4: PrizeVault Contract (4–6 hours)
+DAO-controlled vault for monthly prize WZN.
+
+
+Create secure PDA to hold WZN tokens
+
+
+submit_reward_proposal(top_users[], amounts[])
+
+
+Require DAO vote approval before payout
+
+
+distribute_rewards() after vote passes
+
+
+MODULE 5: BurnVault Contract (2 hours)
+Lock WZN in untouchable vault to simulate “burn.”
+
+
+Accept WZN from BurnPass
+
+
+No withdrawal function
+
+
+Only unlockable with DAO + 10-year delay or 80% rule
+
+
+MODULE 6: DAO_VoteSystem (8–12 hours)
+Manages on-chain voting for prize approval and vault access.
+
+
+create_proposal(type, metadata)
+
+
+vote(proposal_id, wallet)
+
+
+Check quorum, delay, minimum yes votes
+
+
+On success, trigger outcome (reward payout, vault unlock, etc.)
+
+
+MODULE 7: EmergencyRecovery (3–4 hours)
+Failsafe to unlock funds if DAO is dead.
+
+
+propose_emergency_unlock()
+
+
+Require 10 whitelisted recovery wallets to approve
+
+
+Only triggers if BurnVault has 80%+ total supply
+
+
+MODULE 8: Frontend + API Hooks (collab with frontend dev, 2–3 hours)
+Wallet connection check
+
+
+BurnPass status query
+
+
+Stats API
+
+
+Proposal and voting endpoints
+
+
+⏱️ HOURLY TASK PLAN (Est. ~40–50 hours total)
+Time Block Task
+Hour 1–3 Setup project structure, anchor config, WZN token metadata
+Hour 4–6 Implement BurnPass (burn logic, PDA write, lock WZN)
+Hour 7–9 Game access check logic
+Hour 10–14 ScoreTracker basic setup (record wins/slagen)
+Hour 15–18 Setup PrizeVault (accept tokens, queue rewards)
+Hour 19–25 DAO voting system (create/vote/resolve)
+Hour 26–30 Hook in reward distribution and burn vault logic
+Hour 31–34 Emergency recovery logic
+Hour 35–40 Write tests (unit tests for burn, vote, payout)
+Hour 41–50 Frontend integration + deploy to devnet + test end-to-end
+
+
+✅ Deployment Notes
+Use Anchor framework (Rust) for Solana contract development
+
+
+Deploy to Devnet first, then Mainnet once tested
+
+
+Try to stay under 3 SOL deployment budget (compact contracts)
+
+
+Use user-pays-fees model (no central fee wallet)
+
+
+Would you like me to prepare:
+
+
+📂 A ZIP with smart contract stubs + Anchor boilerplate?
+
+
+🧾 A visual diagram of the contract interactions?
+
+
+📑 JSON for DAO voting configs (quorum %, delays)?
+
+
+🧠 Add pseudocode for each module?
+
+
+Just say the word — I can also generate a full Anchor project folder with placeholder code if that helps him prototype faster.
+Stanislav Uzunchev 12:52 AM
+
+I'll keep you posted on how far we are.
+KRISTOF VAN ROOY 12:55 AM
+
+thanks that is cool we need good communication if we want to round this in 4 - 5 days
+
+you still fine with this approach
+
+the front end developer can likely do it in that time to all
+
+he has worked two ten hour days
+
+by chatgpt given so ilikely a bit less
+
+but if we have it working in under a week we can see really fast if all is good and test nicely and not get in an idea creep
+Stanislav Uzunchev 12:58 AM
+
+I hope we can do it in under a week, but we'll see.
+KRISTOF VAN ROOY 12:58 AM
+
+yeah it would be cool if we can make it into a sprint
+
+then we can be proud of ourselves 🙂 and can start doing the fun stuff to besides only coding 😉
+
+i'll let you work on it now thanks
+KRISTOF VAN ROOY 12:59 AM
+
+oh i'll make a room tomorrow for you to talk to the other coder
+Favorited
+
+he will be done likely in 3 - 4 days with all front end stuff
+Stanislav Uzunchev 1:00 AM
+
+oke
+KRISTOF VAN ROOY 5:03 PM
+
+hi
+
+how is it going did you guys manage to begin 🙂
+
+from after tomorrow the other coder could start using smartcontract things i can give him other tasks though optional ones but then we wait for smartcontracts to finish it fast as mvp. But i already have ideas how to expand on it now
+
+so he can do a few more things
+
+but we cannot wait a full week 😉
+Stanislav Uzunchev 5:08 PM
+
+I see, the other one said he's going to the hospital today and then he'll come back and start. I'm still working for him right now, I think he'll be here in 3 hours.
+
+I work, I had to change some things in the contract after the logic changed yesterday
+KRISTOF VAN ROOY 5:09 PM
+
+i understand i asked for a total change
+
+i wont be doing that again hopefully if somethign is changed it will be small
+Stanislav Uzunchev 5:10 PM
+
+This is in the interest of the project, it's good to be in the US.
+KRISTOF VAN ROOY 5:10 PM
+
+https://discord.gg/73NABgj2
+Word lid van de Discord-server WizenToken!
+Battle in the WZN World Tournament — where four players clash with memory, strategy, and luck. Rise through the seasons and fight for your place in the annual World Championship. Only the greatest will be remembered. | 17 leden
+Discord
+
+ps we started a discord server a few weeks ago alraedy but the previous coder made us stall so nothing happened now we are well under way you can join
+
+you and the other dev
+
+i'll add you guys to the team if you join
+Stanislav Uzunchev 5:11 PM
+
+okay
+
+thx
+
+i send request
+KRISTOF VAN ROOY 5:56 PM
+
+noted 🙂
+
+you can check there is not much yet
+Stanislav Uzunchev 9:44 PM
+
+You removed this message
+
+I'm working on a problem with the Solana architecture right now and the compilation.
+Sunday, Jul 27
+KRISTOF VAN ROOY 2:13 AM
+
+did you manage to fix it?
+
+how is it going?
+Stanislav Uzunchev 2:35 AM
+
+yeah i fixed
+
+We work hard but I'll rest soon.
+KRISTOF VAN ROOY 2:36 AM
+
+ok then tommorrow you can post progress if you can work
+Stanislav Uzunchev 2:37 AM
+
+oke
+Stanislav Uzunchev 3:25 PM
+
+I have to travel today, later I will send a pdf with the work done so far and what will continue in the coming days
+Monday, Jul 28
+KRISTOF VAN ROOY 4:46 AM
+2 files
+Smartcontract Tasklist.pdf
+30 kB
+wzn_dao_rules.txt
+3 kB
+
+i tried to condense it so we can have it working in a few days if you can start because today our front end developer is doing optional tasks waitning for smartcontracts
+Stanislav Uzunchev 4:48 AM
+
+Okay
+KRISTOF VAN ROOY 4:53 AM
+
+i will look for a backup to in case you cannot start today i will keep the line open and you can stay on the project but someone has to start working on the contracts else we wont make the sprint
+
+i have one other guy out of all them i was interested in i'll contact him to
+
+in case you cannot find enough time then he can start and you can later follow up and or work on other parts of the project until we need new updates on smartcontracts
+
+one more thing chat gpt forgot
+
+Smart Contract Addition (1–2 hours)
+Add a fee_mode flag stored in a config PDA (e.g., 0 = user-pays, 1 = project-pays)
+
+
+When executing functions (like burn_for_pass()), the contract checks:
+
+
+If fee_mode == 1, it uses a pre-approved fee payer (wallet signed by dev/founder)
+
+
+If fee_mode == 0, the user signs and pays
+
+
+🔐 You will need to pre-sign or whitelist your project wallet as an accepted fee_payer in Anchor config.
+
+i pay for taxes for now but when it gets to expensive i can let users pay 🙂
+
+solana taxes
+KRISTOF VAN ROOY 6:05 AM
+
+for failsafe vote you can do 15% or 35% as option
+
+we need more if we got whales holding the largest amounts
+
+then we might not have enoguh for players
+Stanislav Uzunchev 3:06 PM
+
+oke, im rest now
+
+tonight send result
+
+
+как да пратя този тектс в дискорд
+ChatGPT said:
+
+Here’s a concise message you can send to your new developer on Discord or any chat:
+
+Hey! Here's a quick overview of the project we're building:
+
+We're developing a Solana-based game that uses a burn-to-play mechanic with a token called WZN. Players burn tokens to join matches, and the winner gets rewarded — all trustlessly, on-chain.
+
+There’s also a staking system where users lock WZN to earn APY (around 4%), and this staking unlocks their ability to play. We also have a DAO vault, so governance controls the treasury and rewards. If the DAO goes inactive, a backup team multisig can take over temporarily.
+
+The stack is:
+
+    Solana + Anchor for smart contracts (Rust)
+
+    React + TypeScript for frontend
+
+    Docker for local dev
+
+    Potential use of Switchboard VRF, Metaplex, and other tools later
+
+Let me know if you're in — I’ll get you access to the repo and tasks.
+
+Let me know if you want a longer technical onboarding message too.
+You said:
+ame_contract.rs
+File
+recovery_vault.rs
+File
+staking_pool.rs
+File
+vault_utils.rs
+File
+тези смарт договори колко са
+ChatGPT said:
+
+Има
+You said:
+?
+ChatGPT said:
+
+Имаш 4 смарт договора / модула качени:
+
+    ame_contract.rs – изглежда като главният договор за играта или token логиката.
+
+    recovery_vault.rs – договор за възстановяване на токени (Recovery Vault).
+
+    staking_pool.rs – логика за staking с APY и quota механизъм.
+
+    vault_utils.rs – помощни функции и логика, използвани от vault системата.
+
+Най-вероятно те се използват заедно в Anchor workspace. Ако искаш, мога да ти направя кратко описание на всеки или диаграма как комуникират.
+You said:
+sega gi napishi na angliiski
+ChatGPT said:
+
+Sure. Here's a summary of the 4 smart contracts/modules you uploaded, in English:
+🧠 Smart Contracts Overview
+
+    ame_contract.rs
+
+        Main logic for the game or token operations.
+
+        Likely handles burn-to-play, reward distribution, and game-specific flows.
+
+    recovery_vault.rs
+
+        A recovery mechanism for users who lose access or need emergency retrieval.
+
+        Could include a backup voting or multisig process to restore lost funds.
+
+    staking_pool.rs
+
+        Manages staking of WZN tokens.
+
+        Includes 4% APY reward distribution and quota unlocking mechanism per week.
+
+        Core to the "Stake-to-Play" system (you must stake to receive play quota).
+
+    vault_utils.rs
+
+        Utility functions shared across vault-related contracts.
+
+        Likely handles signer seeds, secure transfers, and access control logic.
+
+If you're onboarding a developer, you can just say:
+
+    "We currently have 4 smart contract modules: the main AME contract, a staking pool with APY and play quota, a recovery vault system for emergency token retrieval, and a utility module for vault operations. The system is built with Anchor and runs on Solana Devnet."
+
+Let me know if you want a full README or diagram too.
+You said:
+как така са 4 смартодогожора не са ли само 2
+ChatGPT said:
+
+Good question — и да, и не 😅
+Нека го обясня реално как стоят нещата:
+🤓 Колко смарт договора имаш реално?
+
+    На ниво Solana/Anchor, имаш един “program”, който може да включва няколко модула (файлове).
+
+    В твоя случай имаш 4 Rust файла:
+
+        ame_contract.rs
+
+        staking_pool.rs
+
+        recovery_vault.rs
+
+        vault_utils.rs
+
+Това не означава 4 отделни смарт договора.
+✅ Истината:
+
+👉 Това е един смарт договор (Anchor program), който съдържа няколко модула, всеки със своя логика (staking, vault, recovery и т.н.).
+Те всички ще се деплойнат като едно цяло на Solana Devnet или Mainnet.
+🔥 TL;DR:
+
+    ✅ 1 смарт договор (Anchor program)
+
+    💡 Съставен от 4 логически модула
+
+Ако искаш, мога да ги обединя в една архитектурна схема или да ти направя кратко описание как да го обясниш пред друг dev или клиент. Искаш ли това?
+
+
