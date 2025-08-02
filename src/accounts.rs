@@ -1,440 +1,389 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::token::{self, Token, TokenAccount, Transfer, Burn, Mint};
 
 use crate::state::*;
+use crate::errors::GameError;
 
-// Game Management Accounts
-
+// Game Management
 #[derive(Accounts)]
 pub struct InitializeGame<'info> {
     #[account(
         init,
         payer = authority,
-        space = 8 + 1 + 32 + 96 + 32 + 4 + 8 + 8 + 1 + 1 + 8 + 8,
+        space = 8 + 1 + 32 + 32 + 8 + 1 + 8 + 8 + 8 + 1,
         seeds = [GAME_STATE_SEED],
         bump
     )]
     pub game_state: Account<'info, GameState>,
-
-    #[account(mut)]
+    
     pub authority: Signer<'info>,
-
     pub wzn_mint: Account<'info, Mint>,
-
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
 }
 
 #[derive(Accounts)]
 pub struct BurnToPlay<'info> {
-    #[account(mut)]
-    pub player: Signer<'info>,
-
     #[account(
         mut,
         seeds = [GAME_STATE_SEED],
         bump = game_state.bump,
-        constraint = game_state.is_initialized
+        constraint = game_state.is_initialized @ GameError::GameNotInitialized
     )]
     pub game_state: Account<'info, GameState>,
-
+    
     #[account(
         mut,
-        constraint = player_token_account.owner == player.key(),
-        constraint = player_token_account.mint == game_state.wzn_mint
+        seeds = [BURN_VAULT_SEED],
+        bump = burn_vault.bump,
+        constraint = burn_vault.is_initialized @ GameError::BurnVaultNotInitialized
+    )]
+    pub burn_vault: Account<'info, BurnVault>,
+    
+    #[account(
+        mut,
+        init_if_needed,
+        payer = player,
+        space = 8 + 1 + 32 + 8 + 8 + 1 + 4 + 8,
+        seeds = [PLAYER_PASS_SEED, player.key().as_ref()],
+        bump
+    )]
+    pub player_pass: Account<'info, PlayerPass>,
+    
+    #[account(
+        mut,
+        constraint = player_token_account.owner == player.key() @ GameError::InvalidTokenAccount,
+        constraint = player_token_account.mint == game_state.wzn_mint @ GameError::InvalidTokenMint
     )]
     pub player_token_account: Account<'info, TokenAccount>,
-
+    
+    #[account(
+        mut,
+        seeds = [BURN_VAULT_SEED],
+        bump = burn_vault.bump
+    )]
+    /// CHECK: This is the burn vault token account
+    pub burn_vault_token_account: UncheckedAccount<'info>,
+    
+    pub player: Signer<'info>,
     pub wzn_mint: Account<'info, Mint>,
-
-    #[account(
-        init_if_needed,
-        payer = player,
-        space = 8 + 1 + 32 + 8 + 8 + 8 + 4 + 8 + 1 + 8,
-        seeds = [PLAYER_STATE_SEED, player.key().as_ref()],
-        bump
-    )]
-    pub player_state: Account<'info, PlayerState>,
-
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
 }
 
 #[derive(Accounts)]
-pub struct UseQuotaPlay<'info> {
+pub struct CheckGameAccess<'info> {
     #[account(
-        mut,
         seeds = [GAME_STATE_SEED],
         bump = game_state.bump,
-        constraint = game_state.is_initialized
+        constraint = game_state.is_initialized @ GameError::GameNotInitialized
     )]
     pub game_state: Account<'info, GameState>,
-
+    
     #[account(
-        mut,
-        init_if_needed,
-        payer = player,
-        space = 8 + 1 + 32 + 4 + 4 + 8 + 8,
-        seeds = [PLAYER_QUOTA_SEED, player.key().as_ref()],
-        bump
+        seeds = [PLAYER_PASS_SEED, player.key().as_ref()],
+        bump = player_pass.bump,
+        constraint = player_pass.player == player.key() @ GameError::NotAuthorized
     )]
-    pub player_quota: Account<'info, PlayerQuota>,
-
+    pub player_pass: Account<'info, PlayerPass>,
+    
     pub player: Signer<'info>,
-    pub system_program: Program<'info, System>,
-    pub rent: Sysvar<'info, Rent>,
 }
 
-// Staking Management Accounts
-
+// Vault Management
 #[derive(Accounts)]
-pub struct InitializeStakingPool<'info> {
+pub struct InitializeBurnVault<'info> {
     #[account(
         init,
         payer = authority,
-        space = 8 + 1 + 8 + 8 + 8 + 8 + 8 + 1,
-        seeds = [STAKING_POOL_SEED],
+        space = 8 + 1 + 8 + 8 + 8 + 8 + 8 + 1 + 8,
+        seeds = [BURN_VAULT_SEED],
         bump
     )]
-    pub staking_pool: Account<'info, StakingPool>,
-
-    #[account(mut)]
+    pub burn_vault: Account<'info, BurnVault>,
+    
     pub authority: Signer<'info>,
-
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
 }
 
 #[derive(Accounts)]
-pub struct StakeTokens<'info> {
-    #[account(mut)]
-    pub player: Signer<'info>,
-
-    #[account(
-        mut,
-        seeds = [STAKING_POOL_SEED],
-        bump = staking_pool.bump,
-        constraint = staking_pool.is_initialized
-    )]
-    pub staking_pool: Account<'info, StakingPool>,
-
-    #[account(
-        mut,
-        constraint = player_token_account.owner == player.key()
-    )]
-    pub player_token_account: Account<'info, TokenAccount>,
-
-    #[account(
-        mut,
-        seeds = [STAKING_VAULT_SEED],
-        bump
-    )]
-    pub staking_vault: Account<'info, TokenAccount>,
-
-    #[account(
-        init_if_needed,
-        payer = player,
-        space = 8 + 1 + 32 + 8 + 8 + 8 + 4 + 8 + 1 + 8,
-        seeds = [PLAYER_STATE_SEED, player.key().as_ref()],
-        bump
-    )]
-    pub player_state: Account<'info, PlayerState>,
-
-    pub token_program: Program<'info, Token>,
-    pub system_program: Program<'info, System>,
-    pub rent: Sysvar<'info, Rent>,
-}
-
-#[derive(Accounts)]
-pub struct ClaimRewards<'info> {
-    #[account(
-        mut,
-        seeds = [STAKING_POOL_SEED],
-        bump = staking_pool.bump,
-        constraint = staking_pool.is_initialized
-    )]
-    pub staking_pool: Account<'info, StakingPool>,
-
-    #[account(
-        mut,
-        seeds = [PLAYER_STATE_SEED, player.key().as_ref()],
-        bump = player_state.bump
-    )]
-    pub player_state: Account<'info, PlayerState>,
-
-    #[account(
-        mut,
-        seeds = [REWARD_VAULT_SEED],
-        bump
-    )]
-    pub reward_vault: Account<'info, TokenAccount>,
-
-    #[account(
-        mut,
-        seeds = [PLAYER_QUOTA_SEED, player.key().as_ref()],
-        bump,
-        constraint = player_quota_account.owner == player.key()
-    )]
-    pub player_quota_account: Account<'info, TokenAccount>,
-
-    #[account(
-        seeds = [STAKING_VAULT_SEED],
-        bump
-    )]
-    pub staking_authority: AccountInfo<'info>,
-
-    pub player: Signer<'info>,
-
-    pub token_program: Program<'info, Token>,
-}
-
-#[derive(Accounts)]
-pub struct WithdrawStake<'info> {
-    #[account(
-        mut,
-        seeds = [STAKING_POOL_SEED],
-        bump = staking_pool.bump,
-        constraint = staking_pool.is_initialized
-    )]
-    pub staking_pool: Account<'info, StakingPool>,
-
-    #[account(
-        mut,
-        seeds = [PLAYER_STATE_SEED, player.key().as_ref()],
-        bump = player_state.bump
-    )]
-    pub player_state: Account<'info, PlayerState>,
-
-    #[account(
-        mut,
-        constraint = player_token_account.owner == player.key()
-    )]
-    pub player_token_account: Account<'info, TokenAccount>,
-
-    #[account(
-        mut,
-        seeds = [STAKING_VAULT_SEED],
-        bump
-    )]
-    pub staking_vault: Account<'info, TokenAccount>,
-
-    #[account(
-        seeds = [STAKING_VAULT_SEED],
-        bump
-    )]
-    pub staking_authority: AccountInfo<'info>,
-
-    #[account(
-        seeds = [GAME_STATE_SEED],
-        bump = game_state.bump
-    )]
-    pub game_state: Account<'info, GameState>,
-
-    pub dao_authority: Signer<'info>,
-
-    pub token_program: Program<'info, Token>,
-}
-
-// Vault Management Accounts
-
-#[derive(Accounts)]
-pub struct InitializeVault<'info> {
+pub struct InitializePrizeVault<'info> {
     #[account(
         init,
         payer = authority,
-        space = 8 + 1 + 8 + 8 + 8 + 8 + 1 + 1,
-        seeds = [RECOVERY_VAULT_SEED],
+        space = 8 + 1 + 8 + 8 + 8 + 1,
+        seeds = [PRIZE_VAULT_SEED],
         bump
     )]
-    pub recovery_vault: Account<'info, RecoveryVault>,
-
-    #[account(mut)]
+    pub prize_vault: Account<'info, PrizeVault>,
+    
     pub authority: Signer<'info>,
-
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
 }
 
 #[derive(Accounts)]
-pub struct DepositToVault<'info> {
-    #[account(mut)]
-    pub from: Signer<'info>,
-
+pub struct DepositToPrizeVault<'info> {
     #[account(
         mut,
-        constraint = from_account.owner == from.key()
+        seeds = [PRIZE_VAULT_SEED],
+        bump = prize_vault.bump,
+        constraint = prize_vault.is_initialized @ GameError::PrizeVaultNotInitialized
     )]
-    pub from_account: Account<'info, TokenAccount>,
-
+    pub prize_vault: Account<'info, PrizeVault>,
+    
     #[account(
         mut,
-        seeds = [RECOVERY_VAULT_SEED],
-        bump = recovery_vault.bump,
-        constraint = recovery_vault.is_initialized
+        constraint = from_token_account.owner == authority.key() @ GameError::InvalidTokenAccount,
+        constraint = from_token_account.mint == game_state.wzn_mint @ GameError::InvalidTokenMint
     )]
-    pub recovery_vault: Account<'info, RecoveryVault>,
-
+    pub from_token_account: Account<'info, TokenAccount>,
+    
     #[account(
         mut,
-        seeds = [RECOVERY_VAULT_SEED],
-        bump
+        seeds = [PRIZE_VAULT_SEED],
+        bump = prize_vault.bump
     )]
-    pub vault_account: Account<'info, TokenAccount>,
-
-    pub token_program: Program<'info, Token>,
-}
-
-#[derive(Accounts)]
-pub struct DAOWithdraw<'info> {
-    #[account(
-        mut,
-        seeds = [RECOVERY_VAULT_SEED],
-        bump = recovery_vault.bump,
-        constraint = recovery_vault.is_initialized
-    )]
-    pub recovery_vault: Account<'info, RecoveryVault>,
-
-    #[account(
-        mut,
-        seeds = [RECOVERY_VAULT_SEED],
-        bump
-    )]
-    pub vault_account: Account<'info, TokenAccount>,
-
-    #[account(mut)]
-    pub recipient: Account<'info, TokenAccount>,
-
-    #[account(
-        seeds = [RECOVERY_VAULT_SEED],
-        bump
-    )]
-    pub vault_authority: AccountInfo<'info>,
-
+    /// CHECK: This is the prize vault token account
+    pub prize_vault_token_account: UncheckedAccount<'info>,
+    
     #[account(
         seeds = [GAME_STATE_SEED],
-        bump = game_state.bump
+        bump = game_state.bump,
+        constraint = game_state.is_initialized @ GameError::GameNotInitialized
     )]
     pub game_state: Account<'info, GameState>,
-
-    pub dao_authority: Signer<'info>,
-
+    
+    pub authority: Signer<'info>,
+    pub wzn_mint: Account<'info, Mint>,
     pub token_program: Program<'info, Token>,
 }
 
+// DAO Governance
 #[derive(Accounts)]
-pub struct BackupWithdraw<'info> {
+pub struct InitializeDAO<'info> {
     #[account(
-        mut,
-        seeds = [RECOVERY_VAULT_SEED],
-        bump = recovery_vault.bump,
-        constraint = recovery_vault.is_initialized
-    )]
-    pub recovery_vault: Account<'info, RecoveryVault>,
-
-    #[account(
-        mut,
-        seeds = [RECOVERY_VAULT_SEED],
+        init,
+        payer = authority,
+        space = 8 + 1 + 4 + 32 * 50 + 4 + 8 + 1 + 4 + 100 * 50, // Space for 50 members and 50 proposals
+        seeds = [DAO_GOVERNANCE_SEED],
         bump
     )]
-    pub vault_account: Account<'info, TokenAccount>,
-
-    #[account(mut)]
-    pub recipient: Account<'info, TokenAccount>,
-
-    #[account(
-        seeds = [RECOVERY_VAULT_SEED],
-        bump
-    )]
-    pub vault_authority: AccountInfo<'info>,
-
-    #[account(
-        mut,
-        seeds = [GAME_STATE_SEED],
-        bump = game_state.bump
-    )]
-    pub game_state: Account<'info, GameState>,
-
-    pub backup_authority: Signer<'info>,
-
-    pub token_program: Program<'info, Token>,
+    pub dao_governance: Account<'info, DAOGovernance>,
+    
+    pub authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
 }
 
-// Governance Accounts
+#[derive(Accounts)]
+pub struct CreateProposal<'info> {
+    #[account(
+        mut,
+        seeds = [DAO_GOVERNANCE_SEED],
+        bump = dao_governance.bump,
+        constraint = dao_governance.is_initialized @ GameError::DAONotInitialized
+    )]
+    pub dao_governance: Account<'info, DAOGovernance>,
+    
+    pub proposer: Signer<'info>,
+}
 
 #[derive(Accounts)]
-pub struct UpdateGovernance<'info> {
+pub struct VoteOnProposal<'info> {
+    #[account(
+        mut,
+        seeds = [DAO_GOVERNANCE_SEED],
+        bump = dao_governance.bump,
+        constraint = dao_governance.is_initialized @ GameError::DAONotInitialized
+    )]
+    pub dao_governance: Account<'info, DAOGovernance>,
+    
+    pub voter: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct ExecuteProposal<'info> {
+    #[account(
+        mut,
+        seeds = [DAO_GOVERNANCE_SEED],
+        bump = dao_governance.bump,
+        constraint = dao_governance.is_initialized @ GameError::DAONotInitialized
+    )]
+    pub dao_governance: Account<'info, DAOGovernance>,
+    
+    #[account(
+        mut,
+        seeds = [BURN_VAULT_SEED],
+        bump = burn_vault.bump,
+        constraint = burn_vault.is_initialized @ GameError::BurnVaultNotInitialized
+    )]
+    pub burn_vault: Account<'info, BurnVault>,
+    
+    #[account(
+        mut,
+        seeds = [PRIZE_VAULT_SEED],
+        bump = prize_vault.bump,
+        constraint = prize_vault.is_initialized @ GameError::PrizeVaultNotInitialized
+    )]
+    pub prize_vault: Account<'info, PrizeVault>,
+    
     #[account(
         mut,
         seeds = [GAME_STATE_SEED],
         bump = game_state.bump,
-        constraint = game_state.is_initialized
+        constraint = game_state.is_initialized @ GameError::GameNotInitialized
     )]
     pub game_state: Account<'info, GameState>,
+    
+    pub executor: Signer<'info>,
+    pub token_program: Program<'info, Token>,
+}
 
-    pub dao_authority: Signer<'info>,
+// Emergency Recovery
+#[derive(Accounts)]
+pub struct InitializeEmergencyRecovery<'info> {
+    #[account(
+        init,
+        payer = authority,
+        space = 8 + 1 + 4 + 32 * 20 + 4 + 8 + 8 + 1 + 1 + 8, // Space for 20 backup members
+        seeds = [EMERGENCY_RECOVERY_SEED],
+        bump
+    )]
+    pub emergency_recovery: Account<'info, EmergencyRecovery>,
+    
+    pub authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
 }
 
 #[derive(Accounts)]
-pub struct UpdateBackupTeam<'info> {
+pub struct EmergencyUnlock<'info> {
+    #[account(
+        mut,
+        seeds = [EMERGENCY_RECOVERY_SEED],
+        bump = emergency_recovery.bump,
+        constraint = emergency_recovery.is_initialized @ GameError::EmergencyRecoveryNotInitialized
+    )]
+    pub emergency_recovery: Account<'info, EmergencyRecovery>,
+    
+    #[account(
+        mut,
+        seeds = [BURN_VAULT_SEED],
+        bump = burn_vault.bump,
+        constraint = burn_vault.is_initialized @ GameError::BurnVaultNotInitialized
+    )]
+    pub burn_vault: Account<'info, BurnVault>,
+    
+    #[account(
+        mut,
+        seeds = [BURN_VAULT_SEED],
+        bump = burn_vault.bump
+    )]
+    /// CHECK: This is the burn vault token account
+    pub burn_vault_token_account: UncheckedAccount<'info>,
+    
+    #[account(
+        mut,
+        constraint = recipient_token_account.owner == recipient.key() @ GameError::InvalidTokenAccount,
+        constraint = recipient_token_account.mint == game_state.wzn_mint @ GameError::InvalidTokenMint
+    )]
+    pub recipient_token_account: Account<'info, TokenAccount>,
+    
+    #[account(
+        seeds = [GAME_STATE_SEED],
+        bump = game_state.bump,
+        constraint = game_state.is_initialized @ GameError::GameNotInitialized
+    )]
+    pub game_state: Account<'info, GameState>,
+    
+    pub recipient: Signer<'info>,
+    pub wzn_mint: Account<'info, Mint>,
+    pub token_program: Program<'info, Token>,
+}
+
+// Player Score Management
+#[derive(Accounts)]
+pub struct UpdatePlayerScore<'info> {
+    #[account(
+        mut,
+        init_if_needed,
+        payer = player,
+        space = 8 + 1 + 32 + 4 + 4 + 4 + 4 + 4 + 8 + 8,
+        seeds = [PLAYER_SCORE_SEED, player.key().as_ref()],
+        bump
+    )]
+    pub player_score: Account<'info, PlayerScore>,
+    
+    #[account(
+        seeds = [PLAYER_PASS_SEED, player.key().as_ref()],
+        bump = player_pass.bump,
+        constraint = player_pass.player == player.key() @ GameError::NotAuthorized
+    )]
+    pub player_pass: Account<'info, PlayerPass>,
+    
+    pub player: Signer<'info>,
+    pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
+}
+
+#[derive(Accounts)]
+pub struct DistributePrize<'info> {
+    #[account(
+        mut,
+        seeds = [PRIZE_VAULT_SEED],
+        bump = prize_vault.bump,
+        constraint = prize_vault.is_initialized @ GameError::PrizeVaultNotInitialized
+    )]
+    pub prize_vault: Account<'info, PrizeVault>,
+    
+    #[account(
+        mut,
+        seeds = [PRIZE_VAULT_SEED],
+        bump = prize_vault.bump
+    )]
+    /// CHECK: This is the prize vault token account
+    pub prize_vault_token_account: UncheckedAccount<'info>,
+    
+    #[account(
+        mut,
+        constraint = recipient_token_account.owner == recipient.key() @ GameError::InvalidTokenAccount,
+        constraint = recipient_token_account.mint == game_state.wzn_mint @ GameError::InvalidTokenMint
+    )]
+    pub recipient_token_account: Account<'info, TokenAccount>,
+    
+    #[account(
+        mut,
+        seeds = [PLAYER_SCORE_SEED, recipient.key().as_ref()],
+        bump = player_score.bump,
+        constraint = player_score.player == recipient.key() @ GameError::NotAuthorized
+    )]
+    pub player_score: Account<'info, PlayerScore>,
+    
+    #[account(
+        seeds = [GAME_STATE_SEED],
+        bump = game_state.bump,
+        constraint = game_state.is_initialized @ GameError::GameNotInitialized
+    )]
+    pub game_state: Account<'info, GameState>,
+    
+    pub recipient: Signer<'info>,
+    pub wzn_mint: Account<'info, Mint>,
+    pub token_program: Program<'info, Token>,
+}
+
+// Monthly Reset
+#[derive(Accounts)]
+pub struct MonthlyReset<'info> {
     #[account(
         mut,
         seeds = [GAME_STATE_SEED],
         bump = game_state.bump,
-        constraint = game_state.is_initialized
+        constraint = game_state.is_initialized @ GameError::GameNotInitialized
     )]
     pub game_state: Account<'info, GameState>,
-
-    pub dao_authority: Signer<'info>,
-}
-
-#[derive(Accounts)]
-pub struct SlashStake<'info> {
-    #[account(
-        mut,
-        seeds = [STAKING_POOL_SEED],
-        bump = staking_pool.bump,
-        constraint = staking_pool.is_initialized
-    )]
-    pub staking_pool: Account<'info, StakingPool>,
-
-    #[account(
-        mut,
-        seeds = [PLAYER_STATE_SEED, player.key().as_ref()],
-        bump = player_state.bump
-    )]
-    pub player_state: Account<'info, PlayerState>,
-
-    #[account(mut)]
-    pub player: AccountInfo<'info>,
-
-    #[account(
-        mut,
-        seeds = [STAKING_VAULT_SEED],
-        bump
-    )]
-    pub staking_vault: Account<'info, TokenAccount>,
-
-    #[account(
-        mut,
-        seeds = [GAME_VAULT_SEED],
-        bump
-    )]
-    pub game_vault: Account<'info, TokenAccount>,
-
-    #[account(
-        seeds = [STAKING_VAULT_SEED],
-        bump
-    )]
-    pub staking_authority: AccountInfo<'info>,
-
-    #[account(
-        seeds = [GAME_STATE_SEED],
-        bump = game_state.bump
-    )]
-    pub game_state: Account<'info, GameState>,
-
-    pub dao_authority: Signer<'info>,
-
-    pub token_program: Program<'info, Token>,
+    
+    pub authority: Signer<'info>,
 } 

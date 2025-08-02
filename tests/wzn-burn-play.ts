@@ -14,31 +14,33 @@ describe("wzn-burn-play", () => {
   // Test accounts
   const authority = Keypair.generate();
   const player = Keypair.generate();
-  const backupTeam = [
-    Keypair.generate().publicKey,
-    Keypair.generate().publicKey,
-    Keypair.generate().publicKey,
-  ];
+  const daoMember1 = Keypair.generate();
+  const daoMember2 = Keypair.generate();
+  const emergencyMember1 = Keypair.generate();
+  const emergencyMember2 = Keypair.generate();
 
   // Token accounts
   let wznMint: PublicKey;
   let playerTokenAccount: PublicKey;
-  let stakingVault: PublicKey;
-  let rewardVault: PublicKey;
-  let gameVault: PublicKey;
-  let recoveryVault: PublicKey;
+  let authorityTokenAccount: PublicKey;
+  let burnVaultTokenAccount: PublicKey;
+  let prizeVaultTokenAccount: PublicKey;
 
   // PDAs
   let gameStatePda: PublicKey;
-  let stakingPoolPda: PublicKey;
-  let recoveryVaultPda: PublicKey;
-  let playerStatePda: PublicKey;
-  let playerQuotaPda: PublicKey;
+  let burnVaultPda: PublicKey;
+  let prizeVaultPda: PublicKey;
+  let daoGovernancePda: PublicKey;
+  let emergencyRecoveryPda: PublicKey;
+  let playerPassPda: PublicKey;
+  let playerScorePda: PublicKey;
 
   before(async () => {
     // Airdrop SOL to test accounts
     await provider.connection.requestAirdrop(authority.publicKey, 10 * anchor.web3.LAMPORTS_PER_SOL);
     await provider.connection.requestAirdrop(player.publicKey, 10 * anchor.web3.LAMPORTS_PER_SOL);
+    await provider.connection.requestAirdrop(daoMember1.publicKey, 10 * anchor.web3.LAMPORTS_PER_SOL);
+    await provider.connection.requestAirdrop(daoMember2.publicKey, 10 * anchor.web3.LAMPORTS_PER_SOL);
 
     // Create WZN token mint
     wznMint = await createMint(
@@ -49,7 +51,7 @@ describe("wzn-burn-play", () => {
       6
     );
 
-    // Create player token account
+    // Create token accounts
     playerTokenAccount = await createAccount(
       provider.connection,
       player,
@@ -57,12 +59,28 @@ describe("wzn-burn-play", () => {
       player.publicKey
     );
 
-    // Mint some WZN tokens to player
+    authorityTokenAccount = await createAccount(
+      provider.connection,
+      authority,
+      wznMint,
+      authority.publicKey
+    );
+
+    // Mint some WZN tokens
     await mintTo(
       provider.connection,
       authority,
       wznMint,
       playerTokenAccount,
+      authority,
+      1000000000 // 1000 WZN
+    );
+
+    await mintTo(
+      provider.connection,
+      authority,
+      wznMint,
+      authorityTokenAccount,
       authority,
       1000000000 // 1000 WZN
     );
@@ -73,52 +91,52 @@ describe("wzn-burn-play", () => {
       program.programId
     );
 
-    [stakingPoolPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("staking_pool")],
+    [burnVaultPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("burn_vault")],
       program.programId
     );
 
-    [recoveryVaultPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("recovery_vault")],
+    [prizeVaultPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("prize_vault")],
       program.programId
     );
 
-    [playerStatePda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("player_state"), player.publicKey.toBuffer()],
+    [daoGovernancePda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("dao_governance")],
       program.programId
     );
 
-    [playerQuotaPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("player_quota"), player.publicKey.toBuffer()],
+    [emergencyRecoveryPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("emergency_recovery")],
       program.programId
     );
 
-    [stakingVault] = PublicKey.findProgramAddressSync(
-      [Buffer.from("staking_vault")],
+    [playerPassPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("player_pass"), player.publicKey.toBuffer()],
       program.programId
     );
 
-    [rewardVault] = PublicKey.findProgramAddressSync(
-      [Buffer.from("reward_vault")],
+    [playerScorePda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("player_score"), player.publicKey.toBuffer()],
       program.programId
     );
 
-    [gameVault] = PublicKey.findProgramAddressSync(
-      [Buffer.from("game_vault")],
+    [burnVaultTokenAccount] = PublicKey.findProgramAddressSync(
+      [Buffer.from("burn_vault")],
       program.programId
     );
 
-    [recoveryVault] = PublicKey.findProgramAddressSync(
-      [Buffer.from("recovery_vault")],
+    [prizeVaultTokenAccount] = PublicKey.findProgramAddressSync(
+      [Buffer.from("prize_vault")],
       program.programId
     );
   });
 
   it("Initializes the game", async () => {
-    const weeklyQuota = 10;
+    const monthlyPassCost = 10000000; // 10 WZN
 
     await program.methods
-      .initializeGame(weeklyQuota)
+      .initializeGame(new anchor.BN(monthlyPassCost))
       .accounts({
         gameState: gameStatePda,
         authority: authority.publicKey,
@@ -131,15 +149,18 @@ describe("wzn-burn-play", () => {
 
     const gameState = await program.account.gameState.fetch(gameStatePda);
     assert.equal(gameState.authority.toString(), authority.publicKey.toString());
-    assert.equal(gameState.weeklyQuota, weeklyQuota);
+    assert.equal(gameState.monthlyPassCost.toNumber(), monthlyPassCost);
     assert.equal(gameState.isInitialized, true);
   });
 
-  it("Initializes the staking pool", async () => {
+  it("Initializes the burn vault", async () => {
+    const emergencyThreshold = 800000000000; // 80% of 1B supply
+    const minimumBalance = 10000000000; // 10M WZN
+
     await program.methods
-      .initializeStakingPool()
+      .initializeBurnVault(new anchor.BN(emergencyThreshold), new anchor.BN(minimumBalance))
       .accounts({
-        stakingPool: stakingPoolPda,
+        burnVault: burnVaultPda,
         authority: authority.publicKey,
         systemProgram: SystemProgram.programId,
         rent: SYSVAR_RENT_PUBKEY,
@@ -147,18 +168,17 @@ describe("wzn-burn-play", () => {
       .signers([authority])
       .rpc();
 
-    const stakingPool = await program.account.stakingPool.fetch(stakingPoolPda);
-    assert.equal(stakingPool.isInitialized, true);
-    assert.equal(stakingPool.totalStaked.toNumber(), 0);
+    const burnVault = await program.account.burnVault.fetch(burnVaultPda);
+    assert.equal(burnVault.isInitialized, true);
+    assert.equal(burnVault.totalLocked.toNumber(), 0);
+    assert.equal(burnVault.emergencyUnlockThreshold.toNumber(), emergencyThreshold);
   });
 
-  it("Initializes the recovery vault", async () => {
-    const backupThreshold = 100000000; // 100 WZN
-
+  it("Initializes the prize vault", async () => {
     await program.methods
-      .initializeVault(backupThreshold)
+      .initializePrizeVault()
       .accounts({
-        recoveryVault: recoveryVaultPda,
+        prizeVault: prizeVaultPda,
         authority: authority.publicKey,
         systemProgram: SystemProgram.programId,
         rent: SYSVAR_RENT_PUBKEY,
@@ -166,47 +186,64 @@ describe("wzn-burn-play", () => {
       .signers([authority])
       .rpc();
 
-    const vault = await program.account.recoveryVault.fetch(recoveryVaultPda);
-    assert.equal(vault.isInitialized, true);
-    assert.equal(vault.backupThreshold.toNumber(), backupThreshold);
+    const prizeVault = await program.account.prizeVault.fetch(prizeVaultPda);
+    assert.equal(prizeVault.isInitialized, true);
+    assert.equal(prizeVault.totalDeposited.toNumber(), 0);
   });
 
-  it("Allows player to stake tokens", async () => {
-    const stakeAmount = 100000000; // 100 WZN
+  it("Initializes DAO governance", async () => {
+    const daoMembers = [daoMember1.publicKey, daoMember2.publicKey];
 
     await program.methods
-      .stakeTokens(new anchor.BN(stakeAmount))
+      .initializeDao(daoMembers)
       .accounts({
-        player: player.publicKey,
-        stakingPool: stakingPoolPda,
-        playerTokenAccount: playerTokenAccount,
-        stakingVault: stakingVault,
-        playerState: playerStatePda,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        daoGovernance: daoGovernancePda,
+        authority: authority.publicKey,
         systemProgram: SystemProgram.programId,
         rent: SYSVAR_RENT_PUBKEY,
       })
-      .signers([player])
+      .signers([authority])
       .rpc();
 
-    const stakingPool = await program.account.stakingPool.fetch(stakingPoolPda);
-    const playerState = await program.account.playerState.fetch(playerStatePda);
-
-    assert.equal(stakingPool.totalStaked.toNumber(), stakeAmount);
-    assert.equal(playerState.totalStaked.toNumber(), stakeAmount);
+    const daoGovernance = await program.account.daoGovernance.fetch(daoGovernancePda);
+    assert.equal(daoGovernance.isInitialized, true);
+    assert.equal(daoGovernance.totalMembers, 2);
+    assert.equal(daoGovernance.daoMembers.length, 2);
   });
 
-  it("Allows player to burn tokens to play", async () => {
+  it("Initializes emergency recovery", async () => {
+    const emergencyMembers = [emergencyMember1.publicKey, emergencyMember2.publicKey];
+
+    await program.methods
+      .initializeEmergencyRecovery(emergencyMembers)
+      .accounts({
+        emergencyRecovery: emergencyRecoveryPda,
+        authority: authority.publicKey,
+        systemProgram: SystemProgram.programId,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .signers([authority])
+      .rpc();
+
+    const emergencyRecovery = await program.account.emergencyRecovery.fetch(emergencyRecoveryPda);
+    assert.equal(emergencyRecovery.isInitialized, true);
+    assert.equal(emergencyRecovery.totalMembers, 2);
+    assert.equal(emergencyRecovery.backupMembers.length, 2);
+  });
+
+  it("Allows player to burn tokens for monthly pass", async () => {
     const burnAmount = 10000000; // 10 WZN
 
     await program.methods
       .burnToPlay(new anchor.BN(burnAmount))
       .accounts({
-        player: player.publicKey,
         gameState: gameStatePda,
+        burnVault: burnVaultPda,
+        playerPass: playerPassPda,
         playerTokenAccount: playerTokenAccount,
+        burnVaultTokenAccount: burnVaultTokenAccount,
+        player: player.publicKey,
         wznMint: wznMint,
-        playerState: playerStatePda,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         rent: SYSVAR_RENT_PUBKEY,
@@ -215,18 +252,118 @@ describe("wzn-burn-play", () => {
       .rpc();
 
     const gameState = await program.account.gameState.fetch(gameStatePda);
-    const playerState = await program.account.playerState.fetch(playerStatePda);
+    const burnVault = await program.account.burnVault.fetch(burnVaultPda);
+    const playerPass = await program.account.playerPass.fetch(playerPassPda);
 
     assert.equal(gameState.totalBurned.toNumber(), burnAmount);
-    assert.equal(playerState.weeklyPlaysUsed, 1);
+    assert.equal(burnVault.totalLocked.toNumber(), burnAmount);
+    assert.equal(playerPass.isActive, true);
+    assert.equal(playerPass.totalPassesPurchased, 1);
   });
 
-  it("Allows player to use quota play", async () => {
+  it("Allows checking game access", async () => {
     await program.methods
-      .useQuotaPlay()
+      .checkGameAccess()
       .accounts({
         gameState: gameStatePda,
-        playerQuota: playerQuotaPda,
+        playerPass: playerPassPda,
+        player: player.publicKey,
+      })
+      .signers([player])
+      .rpc();
+
+    // If we reach here, access was granted
+    assert(true);
+  });
+
+  it("Allows depositing to prize vault", async () => {
+    const depositAmount = 50000000; // 50 WZN
+
+    await program.methods
+      .depositToPrizeVault(new anchor.BN(depositAmount))
+      .accounts({
+        prizeVault: prizeVaultPda,
+        fromTokenAccount: authorityTokenAccount,
+        prizeVaultTokenAccount: prizeVaultTokenAccount,
+        gameState: gameStatePda,
+        authority: authority.publicKey,
+        wznMint: wznMint,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .signers([authority])
+      .rpc();
+
+    const prizeVault = await program.account.prizeVault.fetch(prizeVaultPda);
+    assert.equal(prizeVault.totalDeposited.toNumber(), depositAmount);
+  });
+
+  it("Allows creating DAO proposal", async () => {
+    await program.methods
+      .createProposal(
+        { updateMonthlyPassCost: {} },
+        new anchor.BN(15000000), // 15 WZN
+        "Update monthly pass cost"
+      )
+      .accounts({
+        daoGovernance: daoGovernancePda,
+        proposer: daoMember1.publicKey,
+      })
+      .signers([daoMember1])
+      .rpc();
+
+    const daoGovernance = await program.account.daoGovernance.fetch(daoGovernancePda);
+    assert.equal(daoGovernance.pendingProposals.length, 1);
+  });
+
+  it("Allows voting on proposal", async () => {
+    await program.methods
+      .voteOnProposal(0, true) // Vote FOR proposal 0
+      .accounts({
+        daoGovernance: daoGovernancePda,
+        voter: daoMember1.publicKey,
+      })
+      .signers([daoMember1])
+      .rpc();
+
+    await program.methods
+      .voteOnProposal(0, true) // Vote FOR proposal 0
+      .accounts({
+        daoGovernance: daoGovernancePda,
+        voter: daoMember2.publicKey,
+      })
+      .signers([daoMember2])
+      .rpc();
+
+    const daoGovernance = await program.account.daoGovernance.fetch(daoGovernancePda);
+    const proposal = daoGovernance.pendingProposals[0];
+    assert.equal(proposal.totalVotes, 2);
+    assert.equal(proposal.votesFor, 2);
+  });
+
+  it("Allows executing proposal", async () => {
+    await program.methods
+      .executeProposal(0)
+      .accounts({
+        daoGovernance: daoGovernancePda,
+        burnVault: burnVaultPda,
+        prizeVault: prizeVaultPda,
+        gameState: gameStatePda,
+        executor: daoMember1.publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .signers([daoMember1])
+      .rpc();
+
+    const gameState = await program.account.gameState.fetch(gameStatePda);
+    assert.equal(gameState.monthlyPassCost.toNumber(), 15000000); // Updated to 15 WZN
+  });
+
+  it("Allows updating player score", async () => {
+    await program.methods
+      .updatePlayerScore(5, 3, 50) // 5 games played, 3 won, +50 rating
+      .accounts({
+        playerScore: playerScorePda,
+        playerPass: playerPassPda,
         player: player.publicKey,
         systemProgram: SystemProgram.programId,
         rent: SYSVAR_RENT_PUBKEY,
@@ -234,47 +371,50 @@ describe("wzn-burn-play", () => {
       .signers([player])
       .rpc();
 
-    const playerQuota = await program.account.playerQuota.fetch(playerQuotaPda);
-    assert.equal(playerQuota.player.toString(), player.publicKey.toString());
-    assert.equal(playerQuota.playsUsedThisWeek, 1);
+    const playerScore = await program.account.playerScore.fetch(playerScorePda);
+    assert.equal(playerScore.totalGamesPlayed, 5);
+    assert.equal(playerScore.totalGamesWon, 3);
+    assert.equal(playerScore.currentRating, 1050); // 1000 + 50
   });
 
-  it("Allows DAO to update governance", async () => {
-    const newDao = Keypair.generate().publicKey;
+  it("Allows distributing prizes", async () => {
+    const prizeAmount = 10000000; // 10 WZN
 
     await program.methods
-      .updateGovernance(newDao)
+      .distributePrize(new anchor.BN(prizeAmount))
+      .accounts({
+        prizeVault: prizeVaultPda,
+        prizeVaultTokenAccount: prizeVaultTokenAccount,
+        recipientTokenAccount: playerTokenAccount,
+        playerScore: playerScorePda,
+        gameState: gameStatePda,
+        recipient: player.publicKey,
+        wznMint: wznMint,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .signers([player])
+      .rpc();
+
+    const prizeVault = await program.account.prizeVault.fetch(prizeVaultPda);
+    const playerScore = await program.account.playerScore.fetch(playerScorePda);
+    const gameState = await program.account.gameState.fetch(gameStatePda);
+
+    assert.equal(prizeVault.totalDistributed.toNumber(), prizeAmount);
+    assert.equal(playerScore.totalPrizesEarned.toNumber(), prizeAmount);
+    assert.equal(gameState.totalPrizesDistributed.toNumber(), prizeAmount);
+  });
+
+  it("Allows monthly reset", async () => {
+    await program.methods
+      .monthlyReset()
       .accounts({
         gameState: gameStatePda,
-        daoAuthority: authority.publicKey,
+        authority: authority.publicKey,
       })
       .signers([authority])
       .rpc();
 
     const gameState = await program.account.gameState.fetch(gameStatePda);
-    assert.equal(gameState.authority.toString(), newDao.toString());
-  });
-
-  it("Allows DAO to update backup team", async () => {
-    const newBackupTeam = [
-      Keypair.generate().publicKey,
-      Keypair.generate().publicKey,
-      Keypair.generate().publicKey,
-    ];
-
-    await program.methods
-      .updateBackupTeam(newBackupTeam)
-      .accounts({
-        gameState: gameStatePda,
-        daoAuthority: authority.publicKey,
-      })
-      .signers([authority])
-      .rpc();
-
-    const gameState = await program.account.gameState.fetch(gameStatePda);
-    assert.deepEqual(
-      gameState.backupTeam.map(pk => pk.toString()),
-      newBackupTeam.map(pk => pk.toString())
-    );
+    assert(gameState.lastMonthlyReset > 0);
   });
 }); 
