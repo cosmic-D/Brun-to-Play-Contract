@@ -4,46 +4,82 @@ use anchor_lang::prelude::*;
 pub enum GameError {
     #[msg("Invalid amount to burn")]
     InvalidAmount,
-    #[msg("Player already played this round")]
-    AlreadyPlayed,
-    #[msg("Weekly quota exceeded")]
-    QuotaExceeded,
-    #[msg("No rewards available")]
-    NoRewards,
-    #[msg("Insufficient stake")]
-    InsufficientStake,
-    #[msg("Too early to claim rewards")]
-    TooEarlyToClaim,
-    #[msg("Too early to withdraw")]
-    TooEarlyToWithdraw,
-    #[msg("DAO not authorized")]
-    DAONotAuthorized,
-    #[msg("Backup team not authorized")]
-    BackupNotAuthorized,
-    #[msg("Vault not in emergency state")]
-    NotEmergencyState,
-    #[msg("Amount exceeds available balance")]
-    Overdraw,
-    #[msg("Invalid governance update")]
-    InvalidGovernanceUpdate,
-    #[msg("Game not initialized")]
-    GameNotInitialized,
-    #[msg("Staking pool not initialized")]
-    StakingPoolNotInitialized,
-    #[msg("Vault not initialized")]
-    VaultNotInitialized,
+    
     #[msg("Invalid token mint")]
     InvalidTokenMint,
+    
     #[msg("Invalid token account")]
     InvalidTokenAccount,
-    #[msg("Unauthorized access")]
-    Unauthorized,
-    #[msg("Operation not allowed in current state")]
-    OperationNotAllowed,
-    #[msg("Invalid backup team configuration")]
-    InvalidBackupTeam,
-    #[msg("Slashing amount too high")]
-    SlashingAmountTooHigh,
-    #[msg("Weekly reset not ready")]
-    WeeklyResetNotReady,
+    
+    #[msg("Player pass not active")]
+    PassNotActive,
+    
+    #[msg("Pass expired")]
+    PassExpired,
+    
+    #[msg("Insufficient tokens for burn")]
+    InsufficientTokens,
+    
+    #[msg("Game not initialized")]
+    GameNotInitialized,
+    
+    #[msg("Burn vault not initialized")]
+    BurnVaultNotInitialized,
+    
+    #[msg("Prize vault not initialized")]
+    PrizeVaultNotInitialized,
+    
+    #[msg("DAO governance not initialized")]
+    DAONotInitialized,
+    
+    #[msg("Emergency recovery not initialized")]
+    EmergencyRecoveryNotInitialized,
+    
+    #[msg("Not authorized")]
+    NotAuthorized,
+    
+    #[msg("DAO member not found")]
+    DAOMemberNotFound,
+    
+    #[msg("Emergency member not found")]
+    EmergencyMemberNotFound,
+    
+    #[msg("Proposal not found")]
+    ProposalNotFound,
+    
+    #[msg("Proposal already executed")]
+    ProposalAlreadyExecuted,
+    
+    #[msg("Insufficient votes for quorum")]
+    InsufficientVotes,
+    
+    #[msg("Emergency conditions not met")]
+    EmergencyConditionsNotMet,
+    
+    #[msg("Emergency unlock delay not met")]
+    EmergencyUnlockDelayNotMet,
+    
+    #[msg("Invalid unlock percentage")]
+    InvalidUnlockPercentage,
+    
+    #[msg("DAO not inactive enough for emergency")]
+    DAONotInactiveEnough,
+    
+    #[msg("Player score not found")]
+    PlayerScoreNotFound,
+    
+    #[msg("Invalid game result")]
+    InvalidGameResult,
+    
+    #[msg("Monthly reset not ready")]
+    MonthlyResetNotReady,
+    
+    #[msg("Invalid proposal type")]
+    InvalidProposalType,
+    
+    #[msg("Proposal voting period ended")]
+    ProposalVotingEnded,
+    
+    #[msg("Invalid emergency unlock amount")]
+    InvalidEmergencyUnlockAmount,
 } 
